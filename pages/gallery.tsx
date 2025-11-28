@@ -16,103 +16,126 @@ export default function GalleryPage() {
     }, [])
 
     const handleClear = () => {
-        if (confirm("Yakin mau hapus semua foto?")) {
+        if (photos.length === 0) return
+        if (confirm("Yakin mau hapus semua foto di gallery?")) {
             clearPhotos()
             setPhotos([])
             setActive(null)
         }
     }
 
-    const goBack = () => router.push("/")
+    const goHome = () => router.push("/")
+    const goCamera = () => router.push("/camera")
 
     return (
         <Layout>
             <PhoneShell>
-                <div className="flex flex-col gap-4 h-[520px]">
+                <div className="flex h-[520px] flex-col gap-4">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
-                        <h1 className="text-lg font-semibold text-slate-800">Gallery</h1>
                         <button
-                            onClick={goBack}
-                            className="text-xs px-3 py-1 rounded-full border border-slate-300 hover:bg-slate-100"
+                            onClick={goHome}
+                            className="text-xs rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-100 transition flex items-center gap-1"
                         >
-                            Home
+                            ← <span>Home</span>
+                        </button>
+                        <div className="text-right">
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                                gallery
+                            </p>
+                            <p className="text-sm font-semibold text-slate-800">
+                                Your snapshots
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Info bar */}
+                    <div className="flex items-center justify-between rounded-2xl bg-white/80 border border-slate-100 px-3 py-2 text-[11px] text-slate-600">
+                        <span>
+                            {photos.length === 0
+                                ? "Belum ada foto, cobain kamera dulu 😉"
+                                : `${photos.length} photo${photos.length > 1 ? "s" : ""} saved locally`}
+                        </span>
+                        <button
+                            onClick={handleClear}
+                            className="rounded-full border border-red-300 px-2.5 py-1 text-[10px] text-red-500 hover:bg-red-50 transition"
+                        >
+                            Clear all
                         </button>
                     </div>
 
+                    {/* Content */}
                     {photos.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 text-sm">
-                            <p>Belum ada foto nih 🥹</p>
+                        <div className="flex flex-1 flex-col items-center justify-center text-center text-slate-500 text-sm">
+                            <p>Gallery masih kosong 🥹</p>
                             <button
-                                onClick={() => router.push("/camera")}
-                                className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white"
+                                onClick={goCamera}
+                                className="mt-3 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_20px_rgba(16,185,129,0.6)] hover:-translate-y-[1px] hover:shadow-[0_12px_28px_rgba(16,185,129,0.7)] active:translate-y-[1px] transition-all flex items-center gap-1"
                             >
-                                Ambil foto dulu
+                                <span>📷</span>
+                                <span>Go to camera</span>
                             </button>
                         </div>
                     ) : (
-                        <>
-                            <div className="flex-1 overflow-y-auto">
-                                <div className="grid grid-cols-2 gap-2 pb-3">
-                                    {photos.map((p) => (
-                                        <button
-                                            key={p.id}
-                                            onClick={() => setActive(p)}
-                                            className="relative aspect-[3/4] overflow-hidden rounded-xl bg-slate-200"
-                                        >
-                                            <img
-                                                src={p.dataUrl}
-                                                alt="Captured"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
+                        <div className="flex-1 overflow-y-auto rounded-3xl bg-slate-100/70 border border-slate-100 p-2">
+                            <div className="grid grid-cols-2 gap-2 pb-2">
+                                {photos.map((p) => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setActive(p)}
+                                        className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-slate-200 shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
+                                    >
+                                        <img
+                                            src={p.dataUrl}
+                                            alt="Captured"
+                                            className="h-full w-full object-cover"
+                                        />
+                                        <div className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[9px] text-slate-50">
+                                            tap to view
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
-
-                            <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-500">
-                                    {photos.length} photo{photos.length > 1 ? "s" : ""}
-                                </span>
-                                <button
-                                    onClick={handleClear}
-                                    className="px-3 py-1 rounded-full border border-red-400 text-red-500 hover:bg-red-50"
-                                >
-                                    Clear all
-                                </button>
-                            </div>
-                        </>
+                        </div>
                     )}
 
                     {/* Modal preview */}
                     {active && (
                         <div
-                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/65"
                             onClick={() => setActive(null)}
                         >
                             <div
-                                className="w-[320px] rounded-2xl bg-white p-3 flex flex-col gap-2"
+                                className="w-[320px] rounded-3xl bg-slate-50/95 border border-white/80 p-3 shadow-[0_20px_55px_rgba(15,23,42,0.9)] backdrop-blur-sm flex flex-col gap-3"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <div className="aspect-[3/4] overflow-hidden rounded-xl bg-slate-200">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] text-slate-500">
+                                        Preview photo
+                                    </span>
+                                    <button
+                                        onClick={() => setActive(null)}
+                                        className="text-[11px] rounded-full border border-slate-200 px-2.5 py-0.5 text-slate-600 hover:bg-slate-100 transition"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+
+                                <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-slate-200">
                                     <img
                                         src={active.dataUrl}
                                         alt="Preview"
-                                        className="w-full h-full object-cover"
+                                        className="h-full w-full object-cover"
                                     />
                                 </div>
+
                                 <a
                                     href={active.dataUrl}
                                     download={`photobooth-${active.id}.png`}
-                                    className="w-full rounded-lg bg-emerald-600 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700 transition"
+                                    className="w-full rounded-full bg-emerald-600 py-2.5 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(16,185,129,0.65)] hover:-translate-y-[1px] hover:shadow-[0_14px_32px_rgba(16,185,129,0.75)] active:translate-y-[1px] transition-all"
                                 >
-                                    Download
+                                    Download photo
                                 </a>
-                                <button
-                                    onClick={() => setActive(null)}
-                                    className="w-full rounded-lg border border-slate-300 py-2 text-xs text-slate-700 hover:bg-slate-100"
-                                >
-                                    Close
-                                </button>
                             </div>
                         </div>
                     )}

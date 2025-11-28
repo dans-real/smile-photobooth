@@ -17,6 +17,11 @@ export default function CameraPage() {
         let stream: MediaStream
 
         async function initCamera() {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setError("Browser kamu belum support kamera.")
+                return
+            }
+
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: "user" },
@@ -29,7 +34,7 @@ export default function CameraPage() {
                 }
             } catch (err) {
                 console.error(err)
-                setError("Gagal mengakses kamera. Cek permission browser ya.")
+                setError("Gagal mengakses kamera. Cek permission browser ya 🙏")
             }
         }
 
@@ -49,12 +54,13 @@ export default function CameraPage() {
         const video = videoRef.current
         const canvas = canvasRef.current
         const ctx = canvas.getContext("2d")
-        if (!ctx) return
+        if (!ctx) {
+            setTaking(false)
+            return
+        }
 
-        // set ukuran canvas sama dengan video
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
-
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
         const dataUrl = canvas.toDataURL("image/png")
@@ -75,52 +81,82 @@ export default function CameraPage() {
         <Layout>
             <PhoneShell>
                 <div className="flex flex-col gap-4">
-                    <h1 className="text-center text-lg font-semibold text-slate-800">
-                        Camera
-                    </h1>
-
-                    <div className="rounded-2xl overflow-hidden bg-slate-200 aspect-[3/4] flex items-center justify-center">
-                        {error && (
-                            <p className="text-xs text-red-600 px-3 text-center">{error}</p>
-                        )}
-                        {!error && (
-                            <video
-                                ref={videoRef}
-                                className="w-full h-full object-cover"
-                                playsInline
-                                muted
-                            />
-                        )}
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={goBack}
+                            className="text-xs rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-100 transition flex items-center gap-1"
+                        >
+                            ← <span>Home</span>
+                        </button>
+                        <div className="text-right">
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                                camera
+                            </p>
+                            <p className="text-sm font-semibold text-slate-800">
+                                Capture mode
+                            </p>
+                        </div>
                     </div>
 
-                    {/* Canvas hidden, cuma buat capture */}
+                    {/* Preview kamera */}
+                    <div className="rounded-3xl bg-slate-200/80 p-1.5 border border-slate-100 shadow-inner">
+                        <div className="relative aspect-[3/4] overflow-hidden rounded-[26px] bg-slate-900">
+                            {error ? (
+                                <div className="flex h-full items-center justify-center px-4 text-center text-xs text-slate-200">
+                                    {error}
+                                </div>
+                            ) : (
+                                <>
+                                    <video
+                                        ref={videoRef}
+                                        className="h-full w-full object-cover"
+                                        playsInline
+                                        muted
+                                    />
+                                    {/* LIVE badge */}
+                                    <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] text-slate-50">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                                        <span>LIVE</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Canvas hidden, cuma untuk capture */}
                     <canvas ref={canvasRef} className="hidden" />
 
+                    {/* Tombol Take Photo */}
                     <button
                         onClick={handleTakePhoto}
-                        disabled={!ready || taking}
-                        className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white disabled:bg-emerald-400 transition"
+                        disabled={!ready || taking || !!error}
+                        className="w-full rounded-full bg-emerald-600 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(16,185,129,0.6)] disabled:bg-emerald-400 disabled:shadow-none hover:-translate-y-[1px] hover:shadow-[0_14px_32px_rgba(16,185,129,0.7)] active:translate-y-[1px] transition-all flex items-center justify-center gap-2"
                     >
-                        {taking ? "Saving..." : "Take Photo"}
+                        <span>{taking ? "Saving..." : "Take Photo"}</span>
+                        {!taking && <span>◎</span>}
                     </button>
 
+                    {/* Tombol bawah */}
                     <div className="flex justify-between gap-2 text-sm">
                         <button
                             onClick={goBack}
-                            className="flex-1 rounded-lg border border-emerald-600 py-2 text-emerald-700 hover:bg-emerald-50 transition"
+                            className="flex-1 rounded-xl border border-slate-200 py-2 text-slate-700 hover:bg-slate-100 transition"
                         >
                             Back
                         </button>
                         <button
                             onClick={goFinish}
-                            className="flex-1 rounded-lg bg-emerald-600 py-2 text-white hover:bg-emerald-700 transition"
+                            className="flex-1 rounded-xl bg-slate-900 py-2 text-white hover:bg-slate-800 transition"
                         >
-                            Finish
+                            Finish &amp; Gallery
                         </button>
                     </div>
 
-                    <p className="text-[11px] text-center text-slate-500">
-                        Foto yang kamu ambil cuma disimpan di browser ini (localStorage).
+                    {/* Tips kecil */}
+                    <p className="text-[10px] text-center text-slate-500">
+                        Tip: pastikan tab ini aktif &amp; izin kamera sudah diizinkan. Foto
+                        akan langsung masuk ke gallery kamu.
                     </p>
                 </div>
             </PhoneShell>

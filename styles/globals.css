@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* optional: kecil2 buat smoothing font */
 body {
   @apply antialiased;
 }

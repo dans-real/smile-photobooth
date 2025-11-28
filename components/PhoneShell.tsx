@@ -8,27 +8,29 @@ type Props = {
 export default function PhoneShell({ children }: Props) {
     return (
         <div className="relative w-[320px] sm:w-[360px]">
-            {/* Bayangan di bawah biar berasa melayang */}
+            {/* Bayangan bawah */}
             <div className="absolute inset-x-6 -bottom-6 h-8 rounded-full bg-slate-900/40 blur-xl opacity-70" />
 
-            <div className="relative rounded-[36px] bg-slate-50/95 border border-white/80 shadow-[0_20px_55px_rgba(15,23,42,0.45)] overflow-hidden backdrop-blur">
-                {/* Notch atas kayak HP */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 h-7 w-28 rounded-full bg-slate-200/80 border border-white/60 shadow-inner" />
+            <div className="relative rounded-[36px] bg-slate-50/90 border border-white/80 shadow-[0_22px_60px_rgba(15,23,42,0.55)] overflow-hidden backdrop-blur">
+                {/* Notch atas */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 h-7 w-28 rounded-full bg-slate-200/85 border border-white/60 shadow-inner" />
+
                 {/* Tombol samping */}
                 <div className="absolute left-[-3px] top-20 h-12 w-1.5 rounded-r-full bg-slate-300/80" />
-                <div className="absolute right-[-3px] top-32 h-16 w-1.5 rounded-l-full bg-slate-300/80" />
+                <div className="absolute left-[-3px] top-36 h-7 w-1.5 rounded-r-full bg-slate-300/75" />
+                <div className="absolute right-[-3px] top-28 h-16 w-1.5 rounded-l-full bg-slate-300/80" />
 
                 {/* Sticker emoji ala scrapbook */}
-                <span className="pointer-events-none absolute -left-2 top-10 text-2xl rotate-[-18deg]">
+                <span className="pointer-events-none absolute -left-2 top-9 text-2xl rotate-[-18deg]">
                     📸
                 </span>
-                <span className="pointer-events-none absolute -right-2 top-6 text-2xl rotate-[16deg]">
+                <span className="pointer-events-none absolute -right-2 top-7 text-2xl rotate-[16deg]">
                     🌸
                 </span>
-                <span className="pointer-events-none absolute -left-1 bottom-5 text-2xl rotate-[10deg]">
+                <span className="pointer-events-none absolute -left-1 bottom-6 text-2xl rotate-[10deg]">
                     📱
                 </span>
-                <span className="pointer-events-none absolute -right-2 bottom-6 text-2xl rotate-[-12deg]">
+                <span className="pointer-events-none absolute -right-2 bottom-7 text-2xl rotate-[-12deg]">
                     🎀
                 </span>
 
