@@ -1,4 +1,4 @@
-// pages/camera.tsx
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/router"
 import Layout from "../components/Layout"
@@ -11,6 +11,8 @@ export default function CameraPage() {
     const [ready, setReady] = useState(false)
     const [taking, setTaking] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [flash, setFlash] = useState(false)
+    const [justSaved, setJustSaved] = useState(false)
     const router = useRouter()
 
     useEffect(() => {
@@ -21,7 +23,6 @@ export default function CameraPage() {
                 setError("Browser kamu belum support kamera.")
                 return
             }
-
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: "user" },
@@ -34,7 +35,7 @@ export default function CameraPage() {
                 }
             } catch (err) {
                 console.error(err)
-                setError("Gagal mengakses kamera. Cek permission browser ya 🙏")
+                setError("Gagal mengakses kamera. Cek izin kamera di browser ya 🙏")
             }
         }
 
@@ -59,9 +60,50 @@ export default function CameraPage() {
             return
         }
 
+        // Sesuaikan ukuran canvas dengan video
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
+
+        // Gambar frame utama dari video
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+        // ====== FRAME PHOTOBOOT OVERLAY ======
+
+        // Border putih di sekeliling foto
+        const border = Math.max(10, Math.round(canvas.width * 0.04))
+        ctx.lineWidth = border
+        ctx.strokeStyle = "rgba(255,255,255,0.96)"
+        ctx.strokeRect(
+            border / 2,
+            border / 2,
+            canvas.width - border,
+            canvas.height - border
+        )
+
+        // Panel putih di bagian bawah (seperti polaroid)
+        const panelHeight = Math.round(canvas.height * 0.16)
+        const panelPadding = Math.round(canvas.width * 0.04)
+        ctx.fillStyle = "rgba(255,255,255,0.94)"
+        ctx.fillRect(
+            panelPadding,
+            canvas.height - panelHeight - panelPadding,
+            canvas.width - panelPadding * 2,
+            panelHeight
+        )
+
+        // Teks judul di panel bawah
+        ctx.fillStyle = "#0f172a"
+        const fontSize = Math.round(canvas.height * 0.045)
+        ctx.font = `600 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText(
+            "Smile Photobooth",
+            canvas.width / 2,
+            canvas.height - panelPadding - panelHeight / 2
+        )
+
+        // ====== END FRAME ======
 
         const dataUrl = canvas.toDataURL("image/png")
         const photo = {
@@ -71,11 +113,20 @@ export default function CameraPage() {
         }
 
         savePhoto(photo)
+
+        // Efek flash
+        setFlash(true)
+        setTimeout(() => setFlash(false), 220)
+
+        // Notif kecil bahwa foto tersimpan
+        setJustSaved(true)
+        setTimeout(() => setJustSaved(false), 1400)
+
         setTaking(false)
     }
 
-    const goBack = () => router.push("/")
-    const goFinish = () => router.push("/gallery")
+    const goBackHome = () => router.push("/")
+    const goGallery = () => router.push("/gallery")
 
     return (
         <Layout>
@@ -84,7 +135,7 @@ export default function CameraPage() {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <button
-                            onClick={goBack}
+                            onClick={goBackHome}
                             className="text-xs rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-100 transition flex items-center gap-1"
                         >
                             ← <span>Home</span>
@@ -114,50 +165,70 @@ export default function CameraPage() {
                                         playsInline
                                         muted
                                     />
-                                    {/* LIVE badge */}
                                     <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] text-slate-50">
                                         <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
                                         <span>LIVE</span>
                                     </div>
                                 </>
                             )}
+
+                            {/* Flash overlay */}
+                            {flash && (
+                                <div
+                                    className="pointer-events-none absolute inset-0 bg-white/80"
+                                    style={{ animation: "camera-flash 220ms ease-out forwards" }}
+                                />
+                            )}
                         </div>
                     </div>
 
-                    {/* Canvas hidden, cuma untuk capture */}
+                    {/* Canvas hidden untuk capture */}
                     <canvas ref={canvasRef} className="hidden" />
 
-                    {/* Tombol Take Photo */}
-                    <button
-                        onClick={handleTakePhoto}
-                        disabled={!ready || taking || !!error}
-                        className="w-full rounded-full bg-emerald-600 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(16,185,129,0.6)] disabled:bg-emerald-400 disabled:shadow-none hover:-translate-y-[1px] hover:shadow-[0_14px_32px_rgba(16,185,129,0.7)] active:translate-y-[1px] transition-all flex items-center justify-center gap-2"
-                    >
-                        <span>{taking ? "Saving..." : "Take Photo"}</span>
-                        {!taking && <span>◎</span>}
-                    </button>
+                    {/* Control bar bawah */}
+                    <div className="flex flex-col items-center gap-2">
+                        {/* Shutter button */}
+                        <button
+                            onClick={handleTakePhoto}
+                            disabled={!ready || taking || !!error}
+                            className="relative flex items-center justify-center disabled:opacity-60"
+                        >
+                            <span className="absolute h-14 w-14 rounded-full bg-emerald-500/45 blur-lg" />
+                            <span className="relative h-14 w-14 rounded-full bg-emerald-500 shadow-[0_10px_25px_rgba(16,185,129,0.7)] border-4 border-emerald-100 hover:scale-105 active:scale-95 transition-transform" />
+                        </button>
 
-                    {/* Tombol bawah */}
-                    <div className="flex justify-between gap-2 text-sm">
-                        <button
-                            onClick={goBack}
-                            className="flex-1 rounded-xl border border-slate-200 py-2 text-slate-700 hover:bg-slate-100 transition"
-                        >
-                            Back
-                        </button>
-                        <button
-                            onClick={goFinish}
-                            className="flex-1 rounded-xl bg-slate-900 py-2 text-white hover:bg-slate-800 transition"
-                        >
-                            Finish &amp; Gallery
-                        </button>
+                        {/* Info + notif saved */}
+                        <div className="flex flex-col items-center gap-1">
+                            <p className="text-[11px] text-slate-500">
+                                Tap tombol bulat untuk ambil foto
+                            </p>
+                            {justSaved && (
+                                <div
+                                    className="inline-flex items-center gap-2 rounded-full bg-emerald-600 text-white text-[11px] px-3 py-1 shadow-[0_10px_25px_rgba(16,185,129,0.7)]"
+                                    style={{ animation: "toast-pop 180ms ease-out" }}
+                                >
+                                    <span>✅</span>
+                                    <span>Photo saved to gallery</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Tombol bawah */}
+                        <div className="mt-2 flex w-full justify-between gap-2 text-xs">
+                            <button
+                                onClick={goBackHome}
+                                className="flex-1 rounded-xl border border-slate-200 py-2 text-slate-700 hover:bg-slate-100 transition"
+                            >
+                                Back
+                            </button>
+                            <button
+                                onClick={goGallery}
+                                className="flex-1 rounded-xl bg-slate-900 py-2 text-white hover:bg-slate-800 transition"
+                            >
+                                Go to gallery
+                            </button>
+                        </div>
                     </div>
-
-                    {/* Tips kecil */}
-                    <p className="text-[10px] text-center text-slate-500">
-                        Tip: pastikan tab ini aktif &amp; izin kamera sudah diizinkan. Foto
-                        akan langsung masuk ke gallery kamu.
-                    </p>
                 </div>
             </PhoneShell>
         </Layout>

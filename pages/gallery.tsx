@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/router"
 import Layout from "../components/Layout"
 import PhoneShell from "../components/PhoneShell"
-import { clearPhotos, loadPhotos, Photo } from "../lib/photos"
+import { clearPhotos, loadPhotos, type Photo } from "../lib/photos"
 
 export default function GalleryPage() {
     const [photos, setPhotos] = useState<Photo[]>([])
@@ -13,7 +13,9 @@ export default function GalleryPage() {
     useEffect(() => {
         const stored = loadPhotos()
         setPhotos(stored)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
 
     const handleClear = () => {
         if (photos.length === 0) return
@@ -50,7 +52,7 @@ export default function GalleryPage() {
                     </div>
 
                     {/* Info bar */}
-                    <div className="flex items-center justify-between rounded-2xl bg-white/80 border border-slate-100 px-3 py-2 text-[11px] text-slate-600">
+                    <div className="flex items-center justify-between rounded-2xl bg-white/85 border border-slate-100 px-3 py-2 text-[11px] text-slate-600 shadow-sm">
                         <span>
                             {photos.length === 0
                                 ? "Belum ada foto, cobain kamera dulu 😉"
@@ -70,20 +72,20 @@ export default function GalleryPage() {
                             <p>Gallery masih kosong 🥹</p>
                             <button
                                 onClick={goCamera}
-                                className="mt-3 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_20px_rgba(16,185,129,0.6)] hover:-translate-y-[1px] hover:shadow-[0_12px_28px_rgba(16,185,129,0.7)] active:translate-y-[1px] transition-all flex items-center gap-1"
+                                className="mt-3 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_20px_rgba(16,185,129,0.6)] hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(16,185,129,0.7)] active:translate-y-0.5 transition-all flex items-center gap-1"
                             >
                                 <span>📷</span>
                                 <span>Go to camera</span>
                             </button>
                         </div>
                     ) : (
-                        <div className="flex-1 overflow-y-auto rounded-3xl bg-slate-100/70 border border-slate-100 p-2">
+                        <div className="flex-1 overflow-y-auto rounded-3xl bg-slate-100/80 border border-slate-100 p-2">
                             <div className="grid grid-cols-2 gap-2 pb-2">
                                 {photos.map((p) => (
                                     <button
                                         key={p.id}
                                         onClick={() => setActive(p)}
-                                        className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-slate-200 shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
+                                        className="relative aspect-3/4 overflow-hidden rounded-2xl bg-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
                                     >
                                         <img
                                             src={p.dataUrl}
@@ -121,7 +123,7 @@ export default function GalleryPage() {
                                     </button>
                                 </div>
 
-                                <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-slate-200">
+                                <div className="aspect-3/4 overflow-hidden rounded-2xl bg-slate-200">
                                     <img
                                         src={active.dataUrl}
                                         alt="Preview"
@@ -132,7 +134,7 @@ export default function GalleryPage() {
                                 <a
                                     href={active.dataUrl}
                                     download={`photobooth-${active.id}.png`}
-                                    className="w-full rounded-full bg-emerald-600 py-2.5 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(16,185,129,0.65)] hover:-translate-y-[1px] hover:shadow-[0_14px_32px_rgba(16,185,129,0.75)] active:translate-y-[1px] transition-all"
+                                    className="w-full rounded-full bg-emerald-600 py-2.5 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(16,185,129,0.65)] hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(16,185,129,0.75)] active:translate-y-0.5 transition-all"
                                 >
                                     Download photo
                                 </a>

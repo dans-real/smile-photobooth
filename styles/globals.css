@@ -1,7 +1,58 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* ====== GLOBAL RESET + BACKGROUND ====== */
+
+html,
+body,
+#__next {
+  height: 100%;
+}
 
 body {
-  @apply antialiased;
+  margin: 0;
+  background: radial-gradient(circle at top, #e0f2fe 0, #7dd3fc 40%, #38bdf8 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* Biar semua <a> / Link nggak jadi link biru underline jelek */
+a {
+  text-decoration: none;
+}
+@keyframes float-card {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.float-card {
+  animation: float-card 8s ease-in-out infinite;
+}
+@keyframes camera-flash {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes toast-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
