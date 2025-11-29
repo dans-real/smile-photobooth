@@ -5,29 +5,51 @@ import Layout from "../components/Layout"
 import PhoneShell from "../components/PhoneShell"
 import { savePhoto } from "../lib/photos"
 
+type FrameStyle = "polaroid" | "clean" | "film"
+
 export default function CameraPage() {
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
+    const streamRef = useRef<MediaStream | null>(null)
+
     const [ready, setReady] = useState(false)
     const [taking, setTaking] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [flash, setFlash] = useState(false)
     const [justSaved, setJustSaved] = useState(false)
+    const [frameStyle, setFrameStyle] = useState<FrameStyle>("polaroid")
+    const [facingMode, setFacingMode] = useState<"user" | "environment">("user")
+
     const router = useRouter()
 
+    // Init camera setiap facingMode berubah
     useEffect(() => {
-        let stream: MediaStream
+        let cancelled = false
 
         async function initCamera() {
+            setError(null)
+            setReady(false)
+
+            // stop stream lama dulu
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((t) => t.stop())
+                streamRef.current = null
+            }
+
             if (!navigator.mediaDevices?.getUserMedia) {
                 setError("Browser kamu belum support kamera.")
                 return
             }
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "user" },
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode },
                     audio: false,
                 })
+                if (cancelled) {
+                    stream.getTracks().forEach((t) => t.stop())
+                    return
+                }
+                streamRef.current = stream
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream
                     await videoRef.current.play()
@@ -42,11 +64,13 @@ export default function CameraPage() {
         initCamera()
 
         return () => {
-            if (stream) {
-                stream.getTracks().forEach((track) => track.stop())
+            cancelled = true
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((t) => t.stop())
+                streamRef.current = null
             }
         }
-    }, [])
+    }, [facingMode])
 
     const handleTakePhoto = () => {
         if (!videoRef.current || !canvasRef.current) return
@@ -60,59 +84,71 @@ export default function CameraPage() {
             return
         }
 
-        // Sesuaikan ukuran canvas dengan video
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
 
-        // Gambar frame utama dari video
+        // gambar frame dari video dalam posisi MIRROR
+        ctx.save()
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        ctx.restore()
 
-        // ====== FRAME PHOTOBOOT OVERLAY ======
+        const width = canvas.width
+        const height = canvas.height
+        // ... lanjut frame polaroid/clean/film
 
-        // Border putih di sekeliling foto
-        const border = Math.max(10, Math.round(canvas.width * 0.04))
-        ctx.lineWidth = border
-        ctx.strokeStyle = "rgba(255,255,255,0.96)"
-        ctx.strokeRect(
-            border / 2,
-            border / 2,
-            canvas.width - border,
-            canvas.height - border
-        )
 
-        // Panel putih di bagian bawah (seperti polaroid)
-        const panelHeight = Math.round(canvas.height * 0.16)
-        const panelPadding = Math.round(canvas.width * 0.04)
-        ctx.fillStyle = "rgba(255,255,255,0.94)"
-        ctx.fillRect(
-            panelPadding,
-            canvas.height - panelHeight - panelPadding,
-            canvas.width - panelPadding * 2,
-            panelHeight
-        )
+        const brandTitle = "Smile Photobooth"
+        const watermark = "@lentera.photobooth"
+        const baseFont =
+            'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
-        // Teks judul di panel bawah
-        ctx.fillStyle = "#0f172a"
-        const fontSize = Math.round(canvas.height * 0.045)
-        ctx.font = `600 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
-        ctx.textAlign = "center"
-        ctx.textBaseline = "middle"
-        ctx.fillText(
-            "Smile Photobooth",
-            canvas.width / 2,
-            canvas.height - panelPadding - panelHeight / 2
-        )
+        // ========== FRAME STYLES (pakai versi terakhirmu, cukup biarkan di sini) ==========
+        // ... di sini tetap pakai block if (frameStyle === 'polaroid') { ... } else if (...) { ... }
+        // (nggak perlu aku ulang supaya jawaban ini nggak kepanjangan)
+        // ================================================================================
 
-        // ====== END FRAME ======
+        // --- SCALE DOWN supaya hemat storage ---
+        let targetCanvas: HTMLCanvasElement = canvas
 
-        const dataUrl = canvas.toDataURL("image/png")
+        // Maksimal sisi 1200px biar file nggak kegedean
+        const maxSide = 1200
+        if (canvas.width > maxSide || canvas.height > maxSide) {
+            const scale = Math.min(maxSide / canvas.width, maxSide / canvas.height)
+            const w = Math.round(canvas.width * scale)
+            const h = Math.round(canvas.height * scale)
+
+            const tmp = document.createElement("canvas")
+            tmp.width = w
+            tmp.height = h
+            const tctx = tmp.getContext("2d")
+            if (tctx) {
+                tctx.drawImage(canvas, 0, 0, w, h)
+                targetCanvas = tmp
+            }
+        }
+
+        // JPEG + quality 0.85 → jauh lebih kecil daripada PNG
+        const dataUrl = targetCanvas.toDataURL("image/jpeg", 0.85)
+
         const photo = {
             id: crypto.randomUUID(),
             dataUrl,
             createdAt: new Date().toISOString(),
         }
 
-        savePhoto(photo)
+        const ok = savePhoto(photo)
+
+        if (!ok) {
+            // Kalau gagal (kemungkinan besar quota full), kasih info ke user
+            alert(
+                "Penyimpanan browser sudah penuh 😭\n" +
+                "Buka Gallery lalu hapus beberapa foto (Clear all atau hapus manual), kemudian coba foto lagi ya."
+            )
+            setTaking(false)
+            return
+        }
 
         // Efek flash
         setFlash(true)
@@ -125,8 +161,11 @@ export default function CameraPage() {
         setTaking(false)
     }
 
+
     const goBackHome = () => router.push("/")
     const goGallery = () => router.push("/gallery")
+    const toggleFacing = () =>
+        setFacingMode((prev) => (prev === "user" ? "environment" : "user"))
 
     return (
         <Layout>
@@ -140,13 +179,22 @@ export default function CameraPage() {
                         >
                             ← <span>Home</span>
                         </button>
-                        <div className="text-right">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                                camera
-                            </p>
-                            <p className="text-sm font-semibold text-slate-800">
-                                Capture mode
-                            </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={toggleFacing}
+                                className="text-[11px] rounded-full border border-slate-300 px-2.5 py-1 text-slate-600 hover:bg-slate-100 transition flex items-center gap-1"
+                            >
+                                🔁
+                                <span>{facingMode === "user" ? "Front" : "Back"}</span>
+                            </button>
+                            <div className="text-right">
+                                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                                    camera
+                                </p>
+                                <p className="text-sm font-semibold text-slate-800">
+                                    Capture mode
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -162,12 +210,16 @@ export default function CameraPage() {
                                     <video
                                         ref={videoRef}
                                         className="h-full w-full object-cover"
+                                        style={{ transform: "scaleX(-1)" }}
                                         playsInline
                                         muted
                                     />
                                     <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] text-slate-50">
                                         <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
                                         <span>LIVE</span>
+                                        <span className="ml-1 opacity-80">
+                                            {facingMode === "user" ? "Front" : "Back"}
+                                        </span>
                                     </div>
                                 </>
                             )}
@@ -176,7 +228,9 @@ export default function CameraPage() {
                             {flash && (
                                 <div
                                     className="pointer-events-none absolute inset-0 bg-white/80"
-                                    style={{ animation: "camera-flash 220ms ease-out forwards" }}
+                                    style={{
+                                        animation: "camera-flash 220ms ease-out forwards",
+                                    }}
                                 />
                             )}
                         </div>
@@ -184,6 +238,38 @@ export default function CameraPage() {
 
                     {/* Canvas hidden untuk capture */}
                     <canvas ref={canvasRef} className="hidden" />
+
+                    {/* Frame selector */}
+                    <div className="flex w-full items-center justify-center gap-2 text-[10px]">
+                        {(
+                            [
+                                ["polaroid", "Polaroid"],
+                                ["clean", "Clean"],
+                                ["film", "Film"],
+                            ] as [FrameStyle, string][]
+                        ).map(([value, label]) => {
+                            const active = frameStyle === value
+                            return (
+                                <button
+                                    key={value}
+                                    onClick={() => setFrameStyle(value)}
+                                    className={`rounded-full px-3 py-1 border transition flex items-center gap-1 ${active
+                                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
+                                        : "border-slate-200 bg-white/70 text-slate-500 hover:bg-slate-100"
+                                        }`}
+                                >
+                                    <span>
+                                        {value === "polaroid"
+                                            ? "📷"
+                                            : value === "clean"
+                                                ? "✨"
+                                                : "🎞️"}
+                                    </span>
+                                    <span>{label}</span>
+                                </button>
+                            )
+                        })}
+                    </div>
 
                     {/* Control bar bawah */}
                     <div className="flex flex-col items-center gap-2">
