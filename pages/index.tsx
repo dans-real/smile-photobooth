@@ -67,8 +67,8 @@ export default function Home() {
                     {/* Badge status */}
                     <div
                         className={`inline-flex items-center gap-2 rounded-full px-3 py-1 border text-[10px] shadow-sm ${isNeon
-                                ? "bg-emerald-500/10 border-emerald-400/60 text-emerald-100"
-                                : "bg-emerald-50 border-emerald-100 text-emerald-700"
+                            ? "bg-emerald-500/10 border-emerald-400/60 text-emerald-100"
+                            : "bg-emerald-50 border-emerald-100 text-emerald-700"
                             }`}
                     >
 
@@ -99,10 +99,12 @@ export default function Home() {
                         className={`mt-1 text-[11px] text-center ${isNeon ? "text-slate-300" : "text-slate-500"
                             }`}
                     >
-                        Foto disimpan lokal di browser kamu. Main aman tanpa upload ke mana-mana 😉
+                        Take a picture for free and dont worry about your privacy, we used temporary storage 😉
                     </p>
                 </div>
             </PhoneShell>
         </Layout>
     )
 }
+
+
