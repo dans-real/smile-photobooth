@@ -14,35 +14,35 @@ export default function PhoneShell({ children }: Props) {
         <div className="relative w-[320px] sm:w-[360px] float-card">
             {/* Bayangan bawah */}
             <div
-                className={`absolute inset-x-6 -bottom-7 h-9 rounded-full blur-2xl opacity-80 ${isNeon ? "bg-fuchsia-500/60" : "bg-sky-900/40"
+                className={`absolute inset-x-6 -bottom-7 h-9 rounded-full blur-2xl transition-colors duration-500 ${isNeon ? "bg-fuchsia-500/70 opacity-90" : "bg-purple-400/50 opacity-70"
                     }`}
             />
 
             <div
-                className={`relative rounded-[34px] overflow-hidden backdrop-blur border shadow-[0_22px_60px_rgba(15,23,42,0.65)] transition-transform duration-300 ease-out hover:-translate-y-1 ${isNeon
-                        ? "bg-slate-900/90 border-fuchsia-400/70"
-                        : "bg-slate-50/95 border-white/80"
+                className={`relative rounded-[34px] overflow-hidden backdrop-blur border shadow-[0_22px_60px_rgba(15,23,42,0.65)] transition-all duration-500 ease-out hover:-translate-y-1 ${isNeon
+                        ? "bg-gradient-to-br from-purple-950/90 to-fuchsia-950/80 border-fuchsia-500/70 shadow-[0_0_40px_rgba(236,72,153,0.4)]"
+                        : "bg-white/95 border-purple-200/60 shadow-[0_22px_60px_rgba(168,85,247,0.25)]"
                     }`}
             >
                 {/* Notch atas */}
                 <div
-                    className={`absolute top-3 left-1/2 -translate-x-1/2 h-7 w-32 rounded-full shadow-inner border ${isNeon
-                            ? "bg-slate-800/95 border-slate-600/80"
-                            : "bg-slate-200/90 border-white/70"
+                    className={`absolute top-3 left-1/2 -translate-x-1/2 h-7 w-32 rounded-full shadow-inner border transition-colors duration-500 ${isNeon
+                            ? "bg-slate-900/95 border-purple-700/80"
+                            : "bg-purple-100/90 border-purple-200/70"
                         }`}
                 />
 
                 {/* Tombol samping */}
                 <div
-                    className={`absolute left-[-3px] top-24 h-12 w-1.5 rounded-r-full ${isNeon ? "bg-slate-700/90" : "bg-slate-300/85"
+                    className={`absolute left-[-3px] top-24 h-12 w-1.5 rounded-r-full transition-colors duration-500 ${isNeon ? "bg-purple-800/90" : "bg-purple-300/85"
                         }`}
                 />
                 <div
-                    className={`absolute left-[-3px] top-40 h-7 w-1.5 rounded-r-full ${isNeon ? "bg-slate-700/80" : "bg-slate-300/75"
+                    className={`absolute left-[-3px] top-40 h-7 w-1.5 rounded-r-full transition-colors duration-500 ${isNeon ? "bg-purple-800/80" : "bg-purple-300/75"
                         }`}
                 />
                 <div
-                    className={`absolute right-[-3px] top-32 h-16 w-1.5 rounded-l-full ${isNeon ? "bg-slate-700/90" : "bg-slate-300/85"
+                    className={`absolute right-[-3px] top-32 h-16 w-1.5 rounded-l-full transition-colors duration-500 ${isNeon ? "bg-purple-800/90" : "bg-purple-300/85"
                         }`}
                 />
 
@@ -62,9 +62,9 @@ export default function PhoneShell({ children }: Props) {
 
                 {/* Isi layar */}
                 <div
-                    className={`relative pt-9 pb-6 px-5 ${isNeon
-                            ? "bg-[radial-gradient(circle_at_0_0,rgba(15,23,42,0.95),transparent_55%),radial-gradient(circle_at_100%_0,rgba(24,24,27,0.98),transparent_55%)]"
-                            : "bg-[radial-gradient(circle_at_0_0,rgba(244,244,255,0.95),transparent_55%),radial-gradient(circle_at_100%_0,rgba(255,240,245,0.95),transparent_55%)]"
+                    className={`relative pt-9 pb-6 px-5 transition-colors duration-500 ${isNeon
+                            ? "bg-[radial-gradient(circle_at_0%_0%,rgba(88,28,135,0.3),transparent_50%),radial-gradient(circle_at_100%_0%,rgba(157,23,77,0.25),transparent_50%)]"
+                            : "bg-[radial-gradient(circle_at_0%_0%,rgba(243,232,255,0.6),transparent_50%),radial-gradient(circle_at_100%_0%,rgba(252,231,243,0.5),transparent_50%)]"
                         }`}
                 >
                     {children}

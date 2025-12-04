@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { useEffect, useState } from "react"
+import { useEffect, useState, memo } from "react"
 import { useRouter } from "next/router"
 import Layout from "../components/Layout"
 import PhoneShell from "../components/PhoneShell"
@@ -7,6 +7,50 @@ import { loadPhotos, clearPhotos } from "../lib/photos"
 
 // Ambil tipe Photo dari hasil loadPhotos biar gak perlu export type
 type Photo = ReturnType<typeof loadPhotos>[number]
+
+// Memoized photo card to prevent unnecessary re-renders
+const PhotoCard = memo(({
+    photo,
+    isSelected,
+    onPreview,
+    onToggleSelect
+}: {
+    photo: Photo
+    isSelected: boolean
+    onPreview: (p: Photo) => void
+    onToggleSelect: (id: string) => void
+}) => {
+    return (
+        <div className="relative rounded-2xl overflow-hidden bg-slate-200/60 border border-slate-100 shadow-sm">
+            <button
+                type="button"
+                className="block w-full"
+                onClick={() => onPreview(photo)}
+            >
+                <img
+                    src={photo.dataUrl}
+                    alt="Snapshot"
+                    className="h-full w-full object-cover"
+                />
+            </button>
+
+            {/* Select untuk kolase */}
+            <button
+                type="button"
+                onClick={() => onToggleSelect(photo.id)}
+                className={`absolute left-2 top-2 rounded-full border px-2 py-1 text-[10px] flex items-center gap-1 backdrop-blur transition ${isSelected
+                    ? "bg-emerald-500 text-white border-emerald-400 shadow-md"
+                    : "bg-white/75 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+            >
+                <span>{isSelected ? "✓" : "⊕"}</span>
+                <span>{isSelected ? "Selected" : "Collage"}</span>
+            </button>
+        </div>
+    )
+})
+
+PhotoCard.displayName = "PhotoCard"
 
 export default function GalleryPage() {
     const router = useRouter()
@@ -93,7 +137,12 @@ export default function GalleryPage() {
             const n = images.length
             const max = Math.min(n, 4)
             const used = images.slice(0, max)
-            const gap = 24
+            const gap = 16 // Reduced gap for better composition
+
+            // Helper for dynamic rounded corners
+            const getRoundedRadius = (cellW: number) => {
+                return Math.min(cellW * 0.08, 40)
+            }
 
             if (max === 1) {
                 // 1 foto: full center dengan margin
@@ -102,7 +151,7 @@ export default function GalleryPage() {
                 const targetH = size - gap * 2
                 ctx.save()
                 ctx.beginPath()
-                const r = 64
+                const r = getRoundedRadius(targetW)
                 roundRect(ctx, gap, gap, targetW, targetH, r)
                 ctx.clip()
                 drawCover(img, ctx, gap, gap, targetW, targetH)
@@ -111,13 +160,14 @@ export default function GalleryPage() {
                 // 2 foto: atas & bawah
                 const cellH = (size - gap * 3) / 2
                 const cellW = size - gap * 2
+                const r = getRoundedRadius(cellW)
 
                 used.forEach((img, i) => {
                     const x = gap
                     const y = gap + i * (cellH + gap)
                     ctx.save()
                     ctx.beginPath()
-                    roundRect(ctx, x, y, cellW, cellH, 48)
+                    roundRect(ctx, x, y, cellW, cellH, r)
                     ctx.clip()
                     drawCover(img, ctx, x, y, cellW, cellH)
                     ctx.restore()
@@ -126,6 +176,7 @@ export default function GalleryPage() {
                 // 3 atau 4 foto: grid 2x2
                 const cellW = (size - gap * 3) / 2
                 const cellH = (size - gap * 3) / 2
+                const r = getRoundedRadius(cellW)
 
                 used.forEach((img, i) => {
                     const row = Math.floor(i / 2)
@@ -134,7 +185,7 @@ export default function GalleryPage() {
                     const y = gap + row * (cellH + gap)
                     ctx.save()
                     ctx.beginPath()
-                    roundRect(ctx, x, y, cellW, cellH, 40)
+                    roundRect(ctx, x, y, cellW, cellH, r)
                     ctx.clip()
                     drawCover(img, ctx, x, y, cellW, cellH)
                     ctx.restore()
@@ -142,24 +193,25 @@ export default function GalleryPage() {
             }
 
             // strip bawah dengan title + watermark
-            const barH = 140
+            const barH = 120
             const barY = size - barH
             const grad = ctx.createLinearGradient(0, barY, 0, size)
-            grad.addColorStop(0, "rgba(15,23,42,0.2)")
-            grad.addColorStop(1, "rgba(15,23,42,0.96)")
+            grad.addColorStop(0, "rgba(2,6,23,0.5)")
+            grad.addColorStop(0.3, "rgba(15,23,42,0.85)")
+            grad.addColorStop(1, "rgba(15,23,42,0.98)")
             ctx.fillStyle = grad
             ctx.fillRect(0, barY, size, barH)
 
             ctx.fillStyle = "rgba(248,250,252,0.98)"
             ctx.textAlign = "center"
             ctx.textBaseline = "middle"
-            ctx.font = "600 64px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            ctx.fillText("Smile Photobooth", size / 2, barY + barH / 2 - 16)
+            ctx.font = `600 ${size * 0.048}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
+            ctx.fillText("Smile Photobooth", size / 2, barY + barH / 2 - 14)
 
             ctx.fillStyle = "rgba(148,163,184,0.96)"
             ctx.textAlign = "right"
-            ctx.font = "500 32px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            ctx.fillText("@lentera.photobooth", size - 48, size - 32)
+            ctx.font = `500 ${size * 0.026}px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
+            ctx.fillText("@lentera.photobooth", size - 40, size - 28)
 
             const url = canvas.toDataURL("image/png")
             setCollageUrl(url)
@@ -225,15 +277,26 @@ export default function GalleryPage() {
                     </div>
 
                     {isEmpty ? (
-                        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-10">
-                            <p className="text-sm text-slate-500">
-                                Gallery masih kosong 🥲
-                            </p>
+                        <div className="flex flex-1 flex-col items-center justify-center gap-6 py-12">
+                            {/* Animated illustration */}
+                            <div className="relative">
+                                <div className="h-32 w-32 rounded-full bg-gradient-to-br from-emerald-100 to-sky-100 flex items-center justify-center shadow-lg">
+                                    <span className="text-6xl animate-bounce">📸</span>
+                                </div>
+                                <span className="absolute -right-2 -top-2 text-3xl animate-[spin_3s_linear_infinite]">✨</span>
+                            </div>
+
+                            <div className="text-center">
+                                <p className="text-sm font-medium text-slate-700">Gallery masih kosong</p>
+                                <p className="text-xs text-slate-500 mt-1">Yuk ambil foto pertama kamu!</p>
+                            </div>
+
                             <button
                                 onClick={goCamera}
-                                className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_14px_40px_rgba(16,185,129,0.7)] hover:-translate-y-0.5 hover:shadow-[0_20px_55px_rgba(16,185,129,0.8)] transition"
+                                className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(16,185,129,0.7)] hover:-translate-y-1 hover:shadow-[0_20px_55px_rgba(16,185,129,0.8)] transition-all flex items-center gap-2"
                             >
-                                📷 Go to camera
+                                <span>📷</span>
+                                <span>Buka Kamera</span>
                             </button>
                         </div>
                     ) : (
@@ -262,8 +325,8 @@ export default function GalleryPage() {
                                         onClick={handleBuildCollage}
                                         disabled={selectedCount === 0 || isBuildingCollage}
                                         className={`flex-1 rounded-full px-3 py-2 font-semibold transition flex items-center justify-center gap-1 ${selectedCount === 0 || isBuildingCollage
-                                                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                                : "bg-emerald-600 text-white shadow-[0_10px_25px_rgba(16,185,129,0.7)] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(16,185,129,0.8)]"
+                                            ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                            : "bg-emerald-600 text-white shadow-[0_10px_25px_rgba(16,185,129,0.7)] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(16,185,129,0.8)]"
                                             }`}
                                     >
                                         {isBuildingCollage ? (
@@ -314,8 +377,8 @@ export default function GalleryPage() {
                                                 type="button"
                                                 onClick={() => toggleSelect(p.id)}
                                                 className={`absolute left-2 top-2 rounded-full border px-2 py-1 text-[10px] flex items-center gap-1 backdrop-blur transition ${selected
-                                                        ? "bg-emerald-500 text-white border-emerald-400 shadow-md"
-                                                        : "bg-white/75 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                                    ? "bg-emerald-500 text-white border-emerald-400 shadow-md"
+                                                    : "bg-white/75 text-slate-600 border-slate-200 hover:bg-slate-100"
                                                     }`}
                                             >
                                                 <span>{selected ? "✓" : "⊕"}</span>
@@ -326,83 +389,88 @@ export default function GalleryPage() {
                                 })}
                             </div>
                         </>
-                    )}
-                </div>
-            </PhoneShell>
+                    )
+                    }
+                </div >
+            </PhoneShell >
 
             {/* Modal preview single photo */}
-            {activePhoto && (
-                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-                    <div className="w-full max-w-sm rounded-3xl bg-slate-50 shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-                            <p className="text-xs font-medium text-slate-500">
-                                Preview photo
-                            </p>
-                            <button
-                                onClick={() => setActivePhoto(null)}
-                                className="text-[11px] text-slate-500 hover:text-slate-800"
-                            >
-                                Close
-                            </button>
-                        </div>
-                        <div className="p-4 pb-5 flex flex-col gap-3">
-                            <div className="rounded-2xl overflow-hidden bg-slate-200">
-                                <img
-                                    src={activePhoto.dataUrl}
-                                    alt="Preview"
-                                    className="w-full h-full object-contain"
-                                />
+            {
+                activePhoto && (
+                    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+                        <div className="w-full max-w-sm rounded-3xl bg-slate-50 shadow-2xl overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                <p className="text-xs font-medium text-slate-500">
+                                    Preview photo
+                                </p>
+                                <button
+                                    onClick={() => setActivePhoto(null)}
+                                    className="text-[11px] text-slate-500 hover:text-slate-800"
+                                >
+                                    Close
+                                </button>
                             </div>
-                            <button
-                                onClick={() => {
-                                    const a = document.createElement("a")
-                                    a.href = activePhoto.dataUrl
-                                    a.download = `smile-photo-${activePhoto.id}.png`
-                                    a.click()
-                                }}
-                                className="mt-1 w-full rounded-full bg-emerald-600 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(16,185,129,0.7)] hover:-translate-y-0.5 hover:shadow-[0_20px_55px_rgba(16,185,129,0.8)] transition"
-                            >
-                                Download photo
-                            </button>
+                            <div className="p-4 pb-5 flex flex-col gap-3">
+                                <div className="rounded-2xl overflow-hidden bg-slate-200">
+                                    <img
+                                        src={activePhoto.dataUrl}
+                                        alt="Preview"
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const a = document.createElement("a")
+                                        a.href = activePhoto.dataUrl
+                                        a.download = `smile-photo-${activePhoto.id}.png`
+                                        a.click()
+                                    }}
+                                    className="mt-1 w-full rounded-full bg-emerald-600 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(16,185,129,0.7)] hover:-translate-y-0.5 hover:shadow-[0_20px_55px_rgba(16,185,129,0.8)] transition"
+                                >
+                                    Download photo
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Modal hasil kolase */}
-            {collageUrl && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-                    <div className="w-full max-w-sm rounded-3xl bg-slate-50 shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-                            <p className="text-xs font-medium text-slate-500">
-                                Collage preview
-                            </p>
-                            <button
-                                onClick={() => setCollageUrl(null)}
-                                className="text-[11px] text-slate-500 hover:text-slate-800"
-                            >
-                                Close
-                            </button>
-                        </div>
-                        <div className="p-4 pb-5 flex flex-col gap-3">
-                            <div className="rounded-2xl overflow-hidden bg-slate-900">
-                                <img
-                                    src={collageUrl}
-                                    alt="Collage preview"
-                                    className="w-full h-full object-contain"
-                                />
+            {
+                collageUrl && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+                        <div className="w-full max-w-sm rounded-3xl bg-slate-50 shadow-2xl overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                <p className="text-xs font-medium text-slate-500">
+                                    Collage preview
+                                </p>
+                                <button
+                                    onClick={() => setCollageUrl(null)}
+                                    className="text-[11px] text-slate-500 hover:text-slate-800"
+                                >
+                                    Close
+                                </button>
                             </div>
-                            <button
-                                onClick={handleDownloadCollage}
-                                className="mt-1 w-full rounded-full bg-emerald-600 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(16,185,129,0.7)] hover:-translate-y-0.5 hover:shadow-[0_20px_55px_rgba(16,185,129,0.8)] transition"
-                            >
-                                Download collage
-                            </button>
+                            <div className="p-4 pb-5 flex flex-col gap-3">
+                                <div className="rounded-2xl overflow-hidden bg-slate-900">
+                                    <img
+                                        src={collageUrl}
+                                        alt="Collage preview"
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleDownloadCollage}
+                                    className="mt-1 w-full rounded-full bg-emerald-600 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_rgba(16,185,129,0.7)] hover:-translate-y-0.5 hover:shadow-[0_20px_55px_rgba(16,185,129,0.8)] transition"
+                                >
+                                    Download collage
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </Layout>
+                )
+            }
+        </Layout >
     )
 }
 

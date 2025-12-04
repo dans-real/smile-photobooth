@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/router"
 import Layout from "../components/Layout"
 import PhoneShell from "../components/PhoneShell"
-import { savePhoto } from "../lib/photos"
+import { savePhoto, getStorageInfo } from "../lib/photos"
 
 type FrameStyle = "polaroid" | "clean" | "film"
 
@@ -19,8 +19,20 @@ export default function CameraPage() {
     const [justSaved, setJustSaved] = useState(false)
     const [frameStyle, setFrameStyle] = useState<FrameStyle>("polaroid")
     const [facingMode, setFacingMode] = useState<"user" | "environment">("user")
+    const [storageWarning, setStorageWarning] = useState(false)
+    const [estimatedPhotosLeft, setEstimatedPhotosLeft] = useState(50)
 
     const router = useRouter()
+
+    // Check storage on mount
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        const info = getStorageInfo()
+        setEstimatedPhotosLeft(info.estimatedPhotosLeft)
+        if (info.estimatedPhotosLeft < 5) {
+            setStorageWarning(true)
+        }
+    }, [])
 
     // Init camera setiap facingMode berubah
     useEffect(() => {
@@ -57,7 +69,19 @@ export default function CameraPage() {
                 }
             } catch (err) {
                 console.error(err)
-                setError("Gagal mengakses kamera. Cek izin kamera di browser ya 🙏")
+                let message = "Gagal mengakses kamera 😭"
+
+                if (err instanceof Error) {
+                    if (err.name === "NotAllowedError") {
+                        message = "Kamu belum izinkan akses kamera. Klik ikon kamera di address bar browser, lalu Allow 📷"
+                    } else if (err.name === "NotFoundError") {
+                        message = "Kamera tidak ditemukan di device ini 😢"
+                    } else if (err.name === "NotReadableError") {
+                        message = "Kamera sedang dipakai aplikasi lain. Tutup dulu aplikasi lain ya 🙏"
+                    }
+                }
+
+                setError(message)
             }
         }
 
@@ -68,6 +92,13 @@ export default function CameraPage() {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach((t) => t.stop())
                 streamRef.current = null
+            }
+            // Clear canvas to prevent memory leak
+            if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext("2d")
+                if (ctx) {
+                    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+                }
             }
         }
     }, [facingMode])
@@ -87,27 +118,146 @@ export default function CameraPage() {
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
 
-        // gambar frame dari video dalam posisi MIRROR
-        ctx.save()
-        ctx.translate(canvas.width, 0)
-        ctx.scale(-1, 1)
+        // Draw video frame (NOT mirrored - so text is readable)
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        ctx.restore()
 
         const width = canvas.width
         const height = canvas.height
-        // ... lanjut frame polaroid/clean/film
-
 
         const brandTitle = "Smile Photobooth"
         const watermark = "@lentera.photobooth"
         const baseFont =
             'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
-        // ========== FRAME STYLES (pakai versi terakhirmu, cukup biarkan di sini) ==========
-        // ... di sini tetap pakai block if (frameStyle === 'polaroid') { ... } else if (...) { ... }
-        // (nggak perlu aku ulang supaya jawaban ini nggak kepanjangan)
-        // ================================================================================
+        // ========== FRAME STYLES ==========
+
+        if (frameStyle === "polaroid") {
+            // Create new canvas for polaroid frame
+            const frameCanvas = document.createElement("canvas")
+            const borderBottom = height * 0.12
+            const borderSide = width * 0.08
+            const borderTop = width * 0.08
+
+            frameCanvas.width = width + borderSide * 2
+            frameCanvas.height = height + borderTop + borderBottom
+
+            const fctx = frameCanvas.getContext("2d")
+            if (fctx) {
+                // White background
+                fctx.fillStyle = "#ffffff"
+                fctx.fillRect(0, 0, frameCanvas.width, frameCanvas.height)
+
+                // Draw photo
+                fctx.drawImage(canvas, borderSide, borderTop)
+
+                // Add shadow
+                fctx.shadowColor = "rgba(0,0,0,0.1)"
+                fctx.shadowBlur = 20
+                fctx.shadowOffsetY = 10
+
+                // Bottom label
+                const labelY = height + borderTop + borderBottom / 2
+                fctx.fillStyle = "#1e293b"
+                fctx.textAlign = "center"
+                fctx.textBaseline = "middle"
+                fctx.font = `600 ${width * 0.045}px ${baseFont}`
+                fctx.fillText(brandTitle, frameCanvas.width / 2, labelY - borderBottom * 0.15)
+
+                // Watermark
+                fctx.fillStyle = "#64748b"
+                fctx.font = `500 ${width * 0.028}px ${baseFont}`
+                fctx.fillText(watermark, frameCanvas.width / 2, labelY + borderBottom * 0.12)
+
+                // Copy back to main canvas
+                canvas.width = frameCanvas.width
+                canvas.height = frameCanvas.height
+                ctx.drawImage(frameCanvas, 0, 0)
+            }
+        } else if (frameStyle === "clean") {
+            // Minimalist white border
+            const frameCanvas = document.createElement("canvas")
+            const border = width * 0.04
+
+            frameCanvas.width = width + border * 2
+            frameCanvas.height = height + border * 3
+
+            const fctx = frameCanvas.getContext("2d")
+            if (fctx) {
+                // White background
+                fctx.fillStyle = "#fafafa"
+                fctx.fillRect(0, 0, frameCanvas.width, frameCanvas.height)
+
+                // Draw photo with subtle shadow
+                fctx.shadowColor = "rgba(0,0,0,0.08)"
+                fctx.shadowBlur = 15
+                fctx.drawImage(canvas, border, border)
+
+                // Bottom watermark
+                const labelY = height + border * 2.2
+                fctx.fillStyle = "#94a3b8"
+                fctx.textAlign = "right"
+                fctx.textBaseline = "middle"
+                fctx.font = `500 ${width * 0.025}px ${baseFont}`
+                fctx.fillText(watermark, frameCanvas.width - border * 1.5, labelY)
+
+                // Brand on left
+                fctx.textAlign = "left"
+                fctx.fillStyle = "#cbd5e1"
+                fctx.fillText(brandTitle, border * 1.5, labelY)
+
+                // Copy back
+                canvas.width = frameCanvas.width
+                canvas.height = frameCanvas.height
+                ctx.drawImage(frameCanvas, 0, 0)
+            }
+        } else if (frameStyle === "film") {
+            // Film strip style
+            const frameCanvas = document.createElement("canvas")
+            const stripW = width * 0.08
+            const borderTop = width * 0.06
+            const borderBottom = width * 0.08
+
+            frameCanvas.width = width + stripW * 2
+            frameCanvas.height = height + borderTop + borderBottom
+
+            const fctx = frameCanvas.getContext("2d")
+            if (fctx) {
+                // Black background
+                fctx.fillStyle = "#0f172a"
+                fctx.fillRect(0, 0, frameCanvas.width, frameCanvas.height)
+
+                // Draw photo
+                fctx.drawImage(canvas, stripW, borderTop)
+
+                // Film holes on left
+                const holeSize = stripW * 0.4
+                const holeGap = height / 8
+                fctx.fillStyle = "#1e293b"
+                for (let i = 0; i < 7; i++) {
+                    const y = borderTop + i * holeGap + holeGap / 2
+                    fctx.fillRect(stripW * 0.3, y - holeSize / 2, holeSize, holeSize)
+                    fctx.fillRect(frameCanvas.width - stripW * 0.3 - holeSize, y - holeSize / 2, holeSize, holeSize)
+                }
+
+                // Top strip label
+                fctx.fillStyle = "#f1f5f9"
+                fctx.textAlign = "left"
+                fctx.textBaseline = "middle"
+                fctx.font = `600 ${width * 0.035}px ${baseFont}`
+                fctx.fillText(brandTitle, stripW * 2, borderTop / 2)
+
+                // Bottom watermark
+                fctx.fillStyle = "#94a3b8"
+                fctx.textAlign = "right"
+                fctx.font = `500 ${width * 0.028}px ${baseFont}`
+                fctx.fillText(watermark, frameCanvas.width - stripW * 2, height + borderTop + borderBottom / 2)
+
+                // Copy back
+                canvas.width = frameCanvas.width
+                canvas.height = frameCanvas.height
+                ctx.drawImage(frameCanvas, 0, 0)
+            }
+        }
 
         // --- SCALE DOWN supaya hemat storage ---
         let targetCanvas: HTMLCanvasElement = canvas
@@ -198,12 +348,27 @@ export default function CameraPage() {
                         </div>
                     </div>
 
+                    {/* Storage warning */}
+                    {storageWarning && (
+                        <div className="flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-400/60 text-amber-700 px-3 py-1.5 text-[10px]">
+                            <span>⚠️</span>
+                            <span>Storage hampir penuh! Sisa ~{estimatedPhotosLeft} foto</span>
+                        </div>
+                    )}
+
                     {/* Preview kamera */}
                     <div className="rounded-3xl bg-slate-200/80 p-1.5 border border-slate-100 shadow-inner">
                         <div className="relative aspect-[3/4] overflow-hidden rounded-[26px] bg-slate-900">
                             {error ? (
-                                <div className="flex h-full items-center justify-center px-4 text-center text-xs text-slate-200">
-                                    {error}
+                                <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
+                                    <p className="text-xs text-slate-200">{error}</p>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="text-xs bg-emerald-600 text-white px-4 py-2 rounded-full hover:bg-emerald-700 transition flex items-center gap-1"
+                                    >
+                                        <span>🔄</span>
+                                        <span>Retry</span>
+                                    </button>
                                 </div>
                             ) : (
                                 <>

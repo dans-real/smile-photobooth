@@ -47,3 +47,33 @@ export function clearPhotos() {
         console.error("Failed to clear photos", err)
     }
 }
+
+/**
+ * Get storage usage info and estimate remaining photos
+ */
+export function getStorageInfo(): {
+    used: number
+    available: number
+    estimatedPhotosLeft: number
+} {
+    if (typeof window === "undefined") {
+        return { used: 0, available: 5000000, estimatedPhotosLeft: 50 }
+    }
+
+    try {
+        const photos = loadPhotos()
+        const dataSize = JSON.stringify(photos).length
+        const avgPhotoSize = photos.length > 0 ? dataSize / photos.length : 150000 // ~150KB default
+        const quota = 5 * 1024 * 1024 // 5MB estimate (localStorage varies by browser)
+        const remaining = quota - dataSize
+        const estimatedPhotosLeft = Math.max(0, Math.floor(remaining / avgPhotoSize))
+
+        return {
+            used: dataSize,
+            available: quota,
+            estimatedPhotosLeft
+        }
+    } catch {
+        return { used: 0, available: 5000000, estimatedPhotosLeft: 50 }
+    }
+}
