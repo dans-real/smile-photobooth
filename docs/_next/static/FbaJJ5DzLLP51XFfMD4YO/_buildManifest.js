@@ -6,10 +6,10 @@ self.__BUILD_MANIFEST = {
     "static/chunks/2d057fa356b39440.js"
   ],
   "/camera": [
-    "static/chunks/1fc2b25833bfc0e5.js"
+    "static/chunks/a24b68f1445959d9.js"
   ],
   "/gallery": [
-    "static/chunks/9e2a9a8a81abc28a.js"
+    "static/chunks/9619fa58bb7b997a.js"
   ],
   "__rewrites": {
     "afterFiles": [],
@@ -25,7 +25,6 @@ self.__BUILD_MANIFEST = {
     "/",
     "/_app",
     "/_error",
-    "/api/hello",
     "/camera",
     "/gallery"
   ]
