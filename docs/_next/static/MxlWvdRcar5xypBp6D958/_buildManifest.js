@@ -6,10 +6,10 @@ self.__BUILD_MANIFEST = {
     "static/chunks/2d057fa356b39440.js"
   ],
   "/camera": [
-    "static/chunks/40be04e877e70791.js"
+    "static/chunks/1fc2b25833bfc0e5.js"
   ],
   "/gallery": [
-    "static/chunks/b0908a1b404a05a1.js"
+    "static/chunks/9e2a9a8a81abc28a.js"
   ],
   "__rewrites": {
     "afterFiles": [],
