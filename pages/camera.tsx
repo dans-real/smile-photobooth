@@ -118,7 +118,7 @@ export default function CameraPage() {
             return
         }
 
-        // Create temporary canvas for photo capture (NOT mirrored)
+        // Create temporary canvas for photo capture (MIRRORED like preview)
         const photoCanvas = document.createElement("canvas")
         photoCanvas.width = video.videoWidth
         photoCanvas.height = video.videoHeight
@@ -128,8 +128,15 @@ export default function CameraPage() {
             return
         }
 
-        // Draw video frame to temp canvas (NOT mirrored - text readable)
+        // Mirror the image horizontally (flip like preview)
+        photoCtx.translate(photoCanvas.width, 0)
+        photoCtx.scale(-1, 1)
+
+        // Draw video frame to temp canvas (MIRRORED - same as preview)
         photoCtx.drawImage(video, 0, 0, photoCanvas.width, photoCanvas.height)
+
+        // Reset transform
+        photoCtx.setTransform(1, 0, 0, 1, 0, 0)
 
         // Get selected frame mode config
         const frameConfig = getFrameMode(selectedMode)
